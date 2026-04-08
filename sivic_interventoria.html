@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIVIC — Interventoría Fase 2</title>
+<style>
+:root {
+  --bg:#f8f9fa; --surface:#ffffff; --surface2:#f1f3f5;
+  --border:#dee2e6; --accent:#1971c2; --accent-light:#e7f5ff;
+  --ok:#2f9e44; --ok-light:#ebfbee; --warn:#e67700; --warn-light:#fff9db;
+  --error:#c92a2a; --error-light:#fff5f5; --na:#868e96; --na-light:#f1f3f5;
+  --text:#212529; --text-dim:#868e96;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'SF Mono', 'Consolas', monospace;
+  --radius:8px; --radius-lg:12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+/* HEADER */
+.topbar { background: var(--accent); color: white; padding: 12px 24px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 4px rgba(0,0,0,.15); }
+.topbar-logo { background: rgba(255,255,255,.2); border-radius: var(--radius); padding: 6px 10px; font-weight: 700; font-size: 13px; letter-spacing: .05em; }
+.topbar h1 { font-size: 15px; font-weight: 600; }
+.topbar p { font-size: 11px; opacity: .8; margin-top: 1px; }
+.topbar-right { margin-left: auto; font-size: 11px; opacity: .7; }
+
+/* LAYOUT */
+.shell { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 49px); }
+
+/* SIDEBAR */
+aside { background: var(--surface); border-right: 1px solid var(--border); padding: 20px 0; overflow-y: auto; }
+.sl { font-size: 10px; font-weight: 700; color: var(--text-dim); letter-spacing: .1em; text-transform: uppercase; padding: 0 16px 6px; }
+.ss { margin-bottom: 20px; }
+.sb { width: 100%; text-align: left; background: none; border: none; border-left: 3px solid transparent; padding: 9px 16px; cursor: pointer; font-family: var(--font); font-size: 13px; color: var(--text-dim); display: flex; align-items: center; gap: 9px; transition: all .15s; }
+.sb:hover { background: var(--surface2); color: var(--text); }
+.sb.active { background: var(--accent-light); color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+.sb.done { color: var(--ok); }
+.snum { width: 20px; height: 20px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; transition: all .15s; }
+.sb.active .snum { background: var(--accent); color: white; }
+.sb.done .snum { background: var(--ok); color: white; }
+.pc-sel { padding: 0 16px; }
+.pc-sel select { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--font); font-size: 12px; background: var(--surface); cursor: pointer; }
+.pc-sel select:focus { outline: none; border-color: var(--accent); }
+.sinfo { padding: 4px 16px; font-size: 11px; line-height: 2; color: var(--text-dim); }
+
+/* MAIN */
+main { padding: 28px; overflow-y: auto; max-height: calc(100vh - 49px); }
+.panel { display: none; } .panel.active { display: block; }
+.ptitle { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.psub { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; font-family: var(--mono); }
+
+/* CARDS */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.ctitle { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+
+/* NOTICES */
+.notice { padding: 11px 15px; border-radius: var(--radius); font-size: 13px; margin-bottom: 14px; line-height: 1.5; border: 1px solid; }
+.ni { background: var(--accent-light); border-color: #74c0fc; color: #1864ab; }
+.nw { background: var(--warn-light); border-color: #ffd43b; color: #7d4e00; }
+.ns { background: var(--ok-light); border-color: #8ce99a; color: #1a5c2e; }
+.ne { background: var(--error-light); border-color: #ffa8a8; color: #7d1a1a; }
+
+/* FILE TREE */
+.ftree { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; max-height: 320px; overflow-y: auto; font-size: 13px; }
+.ti { padding: 6px 8px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 8px; margin-bottom: 2px; transition: background .1s; }
+.ti:hover { background: var(--surface); }
+.ti.sel { background: var(--accent-light); color: var(--accent); }
+.ti.folder { font-weight: 600; }
+.ti .meta { font-size: 10px; color: var(--text-dim); margin-left: auto; }
+.ind { padding-left: 20px; }
+.bc { font-size: 12px; color: var(--text-dim); margin-bottom: 10px; }
+.bc span { cursor: pointer; color: var(--accent); } .bc span:hover { text-decoration: underline; }
+
+/* CHECKBOXES */
+.cb-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border-radius: var(--radius); font-size: 13px; margin-bottom: 4px; cursor: pointer; transition: background .1s; }
+.cb-item:hover { background: var(--surface2); }
+.cb-item input { margin-top: 2px; flex-shrink: 0; accent-color: var(--accent); }
+.cb-item .fn { font-weight: 600; margin-bottom: 2px; }
+.cb-item .fm { font-size: 11px; color: var(--text-dim); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* TAGS */
+.tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; margin-left: 6px; }
+.tc { background: #ffe3e3; color: #c92a2a; }
+.tr { background: #fff9db; color: #e67700; }
+.to { background: var(--surface2); color: var(--text-dim); }
+
+/* UPLOAD */
+.ugrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.uz { border: 2px dashed var(--border); border-radius: var(--radius); padding: 12px; cursor: pointer; position: relative; min-height: 60px; transition: all .2s; }
+.uz:hover { border-color: var(--accent); background: var(--accent-light); }
+.uz.has { border-color: var(--ok); border-style: solid; background: var(--ok-light); }
+.uz input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.uzl { font-size: 10px; font-weight: 700; color: var(--text-dim); margin-bottom: 3px; }
+.uzn { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.enum { display: inline-block; background: var(--accent-light); color: var(--accent); border-radius: 4px; padding: 1px 5px; font-size: 9px; margin-right: 4px; font-weight: 700; }
+.dz { border: 2px dashed var(--border); border-radius: var(--radius); padding: 20px; text-align: center; cursor: pointer; position: relative; transition: all .2s; }
+.dz:hover { border-color: var(--accent); background: var(--accent-light); }
+.dz.has { border-color: var(--ok); border-style: solid; background: var(--ok-light); }
+.dz input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: var(--radius); border: 1px solid var(--border); font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; background: var(--surface); color: var(--text); }
+.btn:hover { background: var(--surface2); }
+.btn:active { transform: scale(.98); }
+.btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-primary:hover { background: #1864ab; }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.row-act { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+/* ANALYSIS BLOCKS */
+.ab { border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 14px; overflow: hidden; box-shadow: var(--shadow); }
+.ah { padding: 12px 18px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.at { font-size: 13px; font-weight: 700; }
+.badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; border: 1px solid; }
+.bp { background: var(--na-light); color: var(--na); border-color: var(--border); }
+.br { background: var(--accent-light); color: var(--accent); border-color: #74c0fc; }
+.bd { background: var(--ok-light); color: var(--ok); border-color: #8ce99a; }
+.be { background: var(--error-light); color: var(--error); border-color: #ffa8a8; }
+.ab-body { padding: 18px; max-height: 320px; overflow-y: auto; font-size: 13px; line-height: 1.75; white-space: pre-wrap; color: var(--text); font-family: var(--font); }
+
+/* PROGRESS */
+.pw { margin: 14px 0; }
+.pl { font-size: 12px; color: var(--text-dim); margin-bottom: 5px; display: flex; justify-content: space-between; }
+.pb { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.pf { height: 100%; background: var(--accent); border-radius: 3px; transition: width .4s ease; }
+
+/* SUMMARY TABLE */
+.stbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.stbl th { background: var(--surface2); padding: 9px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); border: 1px solid var(--border); text-align: left; }
+.stbl td { padding: 9px 12px; border: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+.stbl tr:hover td { background: var(--surface2); }
+
+/* SPINNER */
+.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: sp .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+
+/* TEXTAREA / INPUT */
+textarea, input[type=text] { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--font); font-size: 13px; resize: vertical; background: var(--surface); color: var(--text); }
+textarea:focus, input[type=text]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(25,113,194,.15); }
+
+@media (max-width: 800px) {
+  .shell { grid-template-columns: 1fr; }
+  aside { border-right: none; border-bottom: 1px solid var(--border); }
+  .ugrid, .grid2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">SIVIC</div>
+  <div>
+    <h1>Sistema de Interventoría y Verificación Integrada de Consistencia</h1>
+    <p>Fase 2 — Diseño · Puntos críticos · Integración Google Drive</p>
+  </div>
+  <div class="topbar-right" id="connStatus">No conectado</div>
+</div>
+
+<div class="shell">
+<aside>
+  <div class="ss">
+    <div class="sl">Pasos</div>
+    <button class="sb active" onclick="goTo(0)" id="nav0"><span class="snum">1</span>Conectar Drive</button>
+    <button class="sb" onclick="goTo(1)" id="nav1"><span class="snum">2</span>Seleccionar archivos</button>
+    <button class="sb" onclick="goTo(2)" id="nav2"><span class="snum">3</span>Configurar análisis</button>
+    <button class="sb" onclick="goTo(3)" id="nav3"><span class="snum">4</span>Resultados</button>
+  </div>
+  <div class="ss">
+    <div class="sl">Punto crítico activo</div>
+    <div class="pc-sel">
+      <select id="pcSel" onchange="changePC()">
+        <option value="">— Seleccionar —</option>
+        <option>PC-01</option><option>PC-02</option><option>PC-03</option>
+        <option>PC-04</option><option>PC-05</option><option>PC-06</option>
+        <option>PC-07</option><option>PC-08</option><option>PC-09</option>
+        <option>PC-10</option>
+      </select>
+    </div>
+  </div>
+  <div class="ss" id="stPanel" style="display:none">
+    <div class="sl">Estado</div>
+    <div class="sinfo">
+      Drive: <span id="s_d">—</span><br>
+      PC activo: <span id="s_pc">—</span><br>
+      Archivos sel.: <span id="s_f">0</span><br>
+      Análisis: <span id="s_a">0/4</span>
+    </div>
+  </div>
+</aside>
+
+<main>
+
+<!-- P0: CONECTAR -->
+<div class="panel active" id="p0">
+  <div class="ptitle">Conectar Google Drive</div>
+  <div class="psub">Paso 1 · Autorización OAuth — una sola vez</div>
+
+  <div class="card">
+    <div class="ctitle">Autorización Google Drive API</div>
+    <div class="notice ni">Client ID configurado para el proyecto SIVIC-Interventoria (Google Cloud). Haz clic en "Conectar" para autorizar el acceso de lectura a tu Drive.</div>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">
+      Client ID: <code style="font-size:11px;background:var(--surface2);padding:2px 6px;border-radius:4px;">738725054828-bgep4ae7k7074gbsj04rn8anmiiivc2v.apps.googleusercontent.com</code>
+    </p>
+    <div class="row-act">
+      <button class="btn btn-primary" onclick="connectDrive()">Conectar con Google Drive</button>
+      <button class="btn" onclick="demoMode()">Modo demo (sin Drive)</button>
+    </div>
+    <div id="authMsg" style="display:none;margin-top:12px;"></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Estructura del proyecto en Drive</div>
+    <div class="ftree" id="previewTree">
+      <div class="ti folder">📁 PUNTOS CRITICOS_Fase 2</div>
+      <div class="ind">
+        <div class="ti folder">📁 PC_01 STA MARIA 1</div>
+        <div class="ind" style="font-size:12px;color:var(--text-dim);line-height:2.2;">
+          <div>📁 6. Diseño Geométrico y Señalización</div>
+          <div>📁 7. Hidrología, Hidráulica y Socavación</div>
+          <div class="ind" style="font-size:11px;">📄 INF_E7_HHS_PC1_StaMaria.pdf (39.5 MB)<br>📁 Anexos HHS_PC01/ (14 archivos)</div>
+          <div>📁 9. Diseño de Estructuras</div>
+        </div>
+        <div style="padding:4px 8px;font-size:12px;color:var(--text-dim);font-style:italic;">📁 PC_02 ... PC_10 (pendientes)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- P1: SELECCIONAR ARCHIVOS -->
+<div class="panel" id="p1">
+  <div class="ptitle">Seleccionar archivos</div>
+  <div class="psub" id="p1sub">Paso 2 · Navega tu Drive y selecciona los archivos a analizar</div>
+
+  <div class="card">
+    <div class="ctitle">Navegador de Drive</div>
+    <div class="bc" id="bc">📁 Raíz</div>
+    <div class="ftree" id="ftree"><div style="color:var(--text-dim);padding:8px;">Conecta Drive para navegar...</div></div>
+  </div>
+
+  <div class="card" id="selCard" style="display:none;">
+    <div class="ctitle" id="selTit">Archivos del entregable</div>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">Clasificados por prioridad de revisión (estrategia mixta):</p>
+    <div id="flist"></div>
+    <div class="row-act">
+      <button class="btn btn-primary" onclick="goTo(2)">Continuar →</button>
+      <button class="btn" onclick="selCritical()">Solo críticos</button>
+      <button class="btn" onclick="selAll()">Todos</button>
+    </div>
+  </div>
+</div>
+
+<!-- P2: CONFIGURAR ANÁLISIS -->
+<div class="panel" id="p2">
+  <div class="ptitle">Configurar análisis</div>
+  <div class="psub">Paso 3 · Selecciona los análisis a ejecutar</div>
+
+  <div class="card">
+    <div class="ctitle">Archivos seleccionados</div>
+    <div id="selSum" style="font-size:13px;color:var(--text-dim);">Ninguno seleccionado</div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Tipos de análisis</div>
+    <div class="grid2">
+      <label class="cb-item"><input type="checkbox" id="ca0" checked>
+        <div><div class="fn">Coherencia interna</div><div class="fm">Informe vs anexos · contradicciones entre disciplinas</div></div></label>
+      <label class="cb-item"><input type="checkbox" id="ca1" checked>
+        <div><div class="fn">Cumplimiento DTR</div><div class="fm">Verificación contra requisitos técnicos INVIAS</div></div></label>
+      <label class="cb-item"><input type="checkbox" id="ca2" checked>
+        <div><div class="fn">Lista de verificación asesor</div><div class="fm">Aspectos que el asesor debe haber revisado</div></div></label>
+      <label class="cb-item"><input type="checkbox" id="ca3" checked>
+        <div><div class="fn">Síntesis interventoría</div><div class="fm">Concepto final y recomendaciones</div></div></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Contexto del punto crítico</div>
+    <textarea id="ctx" rows="3" placeholder="Nombre del PC, ubicación, características especiales...">PC-01 Sta. María 1 — Vía Quinchía-Irra, Risaralda</textarea>
+  </div>
+
+  <div class="row-act">
+    <button class="btn btn-primary" id="runBtn" onclick="runAll()">▶ Ejecutar análisis completo</button>
+    <button class="btn" onclick="goTo(1)">← Volver</button>
+  </div>
+</div>
+
+<!-- P3: RESULTADOS -->
+<div class="panel" id="p3">
+  <div class="ptitle">Resultados del análisis</div>
+  <div class="psub" id="p3sub">Paso 4 · Concepto de interventoría</div>
+
+  <div class="pw">
+    <div class="pl"><span id="pTxt">Iniciando...</span><span id="pPct">0%</span></div>
+    <div class="pb"><div class="pf" id="pFill" style="width:0%"></div></div>
+  </div>
+
+  <div id="errBox" style="display:none;" class="notice ne"></div>
+  <div id="resArea"></div>
+
+  <div class="row-act" style="margin-top:8px;">
+    <button class="btn btn-primary" onclick="copyAll()">📋 Copiar análisis completo</button>
+    <button class="btn" onclick="exportHTML()">💾 Exportar informe HTML</button>
+    <button class="btn" onclick="goTo(1)">Nuevo entregable</button>
+    <button class="btn" onclick="goTo(0)">Inicio</button>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+// ── CONFIGURACIÓN ──
+const CLIENT_ID = '738725054828-bgep4ae7k7074gbsj04rn8anmiiivc2v.apps.googleusercontent.com';
+const ROOT_ID   = '1iaQHQ5OYxJ_czqA5DjoLCA14zOWw0aN2';
+
+// Estructura conocida del Drive (se actualiza dinámicamente con token)
+const KNOWN = {
+  [ROOT_ID]: { name:'PUNTOS CRITICOS_Fase 2', items:[
+    {id:'1igpY7oXV0oFpmtKG546a9rKawxmIFjFG', name:'DOC CONTRATO', type:'folder'},
+    {id:'1JQaPhnD-RJkAjFyUaHqBFgU3fiZMkO0x', name:'PC_01 STA MARIA 1', type:'folder'},
+  ]},
+  '1JQaPhnD-RJkAjFyUaHqBFgU3fiZMkO0x': { name:'PC_01 STA MARIA 1', items:[
+    {id:'12ToYlDk0EHZNnjANPOFTMt9HS32OYTNC', name:'6. Diseño Geométrico y Señalización_PC1_StaMaria1', type:'folder'},
+    {id:'1nACoA99dxxUqJg_1RHR1SeRwiqKn97Ex', name:'7. Hidrología, Hidráulica y Socavación_PC1_StaMaria1', type:'folder'},
+    {id:'1kwxINFgzI3xJhCFUSeh2lQHdmyHvSARK', name:'9. Diseño de Estructuras_PC1_StaMaria1', type:'folder'},
+  ]},
+  '1nACoA99dxxUqJg_1RHR1SeRwiqKn97Ex': { name:'7. Hidrología, Hidráulica y Socavación', items:[
+    {id:'1ANRl6TmM3aSwhL9qAkR53AOtsslpNSGk', name:'INF_E7_HHS_PC1_StaMaria.pdf', type:'pdf', size:'39.5 MB', priority:'critical'},
+    {id:'19WRp7cXHjCDCG8sUhu5z55mC9ShAte-G', name:'Anexos HHS_PC01', type:'folder'},
+  ]},
+  '19WRp7cXHjCDCG8sUhu5z55mC9ShAte-G': { name:'Anexos HHS_PC01', items:[
+    {id:'1tSj-Z-JeWGNQ6-eMt7SKu6fI1TJbvmeA', name:'Áreas de drenaje PC01 vía Quinchía-Irra.pdf', type:'pdf', size:'13 MB', priority:'critical'},
+    {id:'1KntljBjBjb0y14nd54cJSDSC0EfxZ59E', name:'Caudales_Área_aferente_PC-01_Santa-Maria-1.pdf', type:'pdf', size:'366 KB', priority:'critical'},
+    {id:'1tJtIFSoxCMQ4Dw2APBOU38Ja8hsh-YB5', name:'Curva_IDF_Est_Guerrerito_PC1.pdf', type:'pdf', size:'457 KB', priority:'critical'},
+    {id:'1gqN-40KXqo8pEL7RTPhaX64IBtW8hwbM', name:'Informe_Campo_Obras_Hidráulicas_ContiguoSantaMaria1.pdf', type:'pdf', size:'2.5 MB', priority:'recommended'},
+    {id:'1D1VHfJyFydBxGIWR7FN1fVsr6xnCd_W5', name:'Nativos_Bellavista_T-Maxmedmensual1963-2025_PC1.xlsx', type:'xlsx', size:'62 KB', priority:'recommended'},
+    {id:'1oUFbAdq9i-y3FOnbqqFGqD-QXtaI2DtN', name:'Datos_pluviométricos_estación_Guerrerito.xlsx', type:'xlsx', size:'45 KB', priority:'recommended'},
+    {id:'1Y-Cc0US3l9u89rtNdnoB80ZADERVwN8A', name:'Cálculo_caudal_diseño_HEC-RAS.xlsx', type:'xlsx', size:'78 KB', priority:'optional'},
+    {id:'1QkAsLgynxPXv0m50O_pVsUWuxi9vRmZ8', name:'Verificación_hidráulica_obras_drenaje.xlsx', type:'xlsx', size:'55 KB', priority:'optional'},
+    {id:'1vKZjU55Y6AcUcofUl-qky10NslznOiwp', name:'Memoria_socavación_PC01.xlsx', type:'xlsx', size:'48 KB', priority:'optional'},
+  ]},
+};
+
+const PL = {critical:'Crítico', recommended:'Recomendado', optional:'Opcional'};
+const PT = {critical:'tc', recommended:'tr', optional:'to'};
+const ENTS = [
+  {n:3,  l:'Tránsito y Niveles de Servicio'},
+  {n:6,  l:'Diseño Geométrico y Señalización'},
+  {n:7,  l:'Hidrología, Hidráulica y Socavación'},
+  {n:8,  l:'Geología, Geotecnia y Gestión del Riesgo'},
+  {n:9,  l:'Diseño de Estructuras'},
+  {n:10, l:'Suelos, Fundaciones y Pavimentos'},
+  {n:14, l:'Gestión Predial y Social'},
+];
+
+let S = {
+  token: null, demo: false,
+  path: [{id: ROOT_ID, name:'PUNTOS CRITICOS_Fase 2'}],
+  selected: [], results: {}, pc: '', pcNames: {}
+};
+
+// ── NAVEGACIÓN ──
+function goTo(n) {
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i===n));
+  ['nav0','nav1','nav2','nav3'].forEach((id,i) => {
+    document.getElementById(id).classList.toggle('active', i===n);
+    if(i < n) document.getElementById(id).classList.add('done');
+  });
+  if(n===1) renderTree();
+  if(n===2) renderSummary();
+  if(n===3) renderShell();
+}
+
+function changePC() {
+  S.pc = document.getElementById('pcSel').value;
+  document.getElementById('stPanel').style.display = S.pc ? 'block' : 'none';
+  updateStat();
+}
+
+function updateStat() {
+  document.getElementById('s_d').textContent = S.token ? (S.demo ? 'Demo' : '✓ Conectado') : '✗ Falta';
+  document.getElementById('s_pc').textContent = S.pc || '—';
+  document.getElementById('s_f').textContent = S.selected.length;
+  document.getElementById('s_a').textContent = Object.keys(S.results).length + '/4';
+  document.getElementById('connStatus').textContent = S.token ? (S.demo ? 'Modo demo' : 'Drive conectado ✓') : 'No conectado';
+}
+
+// ── OAUTH DRIVE ──
+function connectDrive() {
+  const scope = 'https://www.googleapis.com/auth/drive.readonly';
+  const uri = window.location.origin + window.location.pathname;
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(uri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+  const pop = window.open(url, 'oauth', 'width=520,height=620');
+  showAuth('<span class="spin"></span> Esperando autorización de Google Drive...', 'ni');
+  const t = setInterval(() => {
+    try {
+      if (pop.closed) { clearInterval(t); showAuth('Ventana cerrada sin autorizar.', 'nw'); return; }
+      const h = pop.location.hash;
+      if (h && h.includes('access_token')) {
+        clearInterval(t); pop.close();
+        S.token = new URLSearchParams(h.slice(1)).get('access_token');
+        showAuth('✓ Google Drive conectado correctamente.', 'ns');
+        document.getElementById('nav0').classList.add('done');
+        updateStat();
+        setTimeout(() => goTo(1), 800);
+      }
+    } catch(e) {}
+  }, 500);
+}
+
+function demoMode() {
+  S.demo = true; S.token = 'DEMO';
+  showAuth('Modo demo activado. Se analizará con descripciones de archivos en lugar del contenido real.', 'nw');
+  document.getElementById('nav0').classList.add('done');
+  updateStat();
+  setTimeout(() => goTo(1), 500);
+}
+
+function showAuth(msg, cls) {
+  const el = document.getElementById('authMsg');
+  el.style.display = 'block'; el.className = 'notice ' + cls; el.innerHTML = msg;
+}
+
+// ── DRIVE API ──
+async function fetchFolder(folderId) {
+  if (S.demo || !S.token || S.token === 'DEMO') return KNOWN[folderId]?.items || [];
+  try {
+    const r = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=files(id,name,mimeType,size)&orderBy=name`,
+      { headers: { Authorization: 'Bearer ' + S.token } }
+    );
+    const d = await r.json();
+    return (d.files || []).map(f => ({
+      id: f.id, name: f.name,
+      type: f.mimeType === 'application/vnd.google-apps.folder' ? 'folder' :
+            f.mimeType === 'application/pdf' ? 'pdf' :
+            (f.mimeType.includes('spreadsheet') || f.name.endsWith('.xlsx')) ? 'xlsx' : 'file',
+      size: f.size ? fmtSize(parseInt(f.size)) : null,
+      priority: guessPriority(f.name),
+    }));
+  } catch(e) { return KNOWN[folderId]?.items || []; }
+}
+
+async function readFile(id) {
+  if (S.demo || !S.token || S.token === 'DEMO') return null;
+  try {
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
+      { headers: { Authorization: 'Bearer ' + S.token } });
+    const blob = await r.blob();
+    return new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = e => res({ b64: e.target.result.split(',')[1], isPdf: blob.type === 'application/pdf' });
+      reader.onerror = rej;
+      reader.readAsDataURL(blob);
+    });
+  } catch(e) { return null; }
+}
+
+function fmtSize(b) { if(b>1e6) return (b/1e6).toFixed(1)+' MB'; if(b>1e3) return Math.round(b/1e3)+' KB'; return b+' B'; }
+function guessPriority(n) {
+  const l = n.toLowerCase();
+  if (l.includes('informe')||l.includes('inf_')||l.includes('curva_idf')||l.includes('caudal')||l.includes('area')||l.includes('áreas')) return 'critical';
+  if (l.includes('nativo')||l.includes('datos')||l.includes('campo')||l.includes('memoria')) return 'recommended';
+  return 'optional';
+}
+
+// ── ÁRBOL DE ARCHIVOS ──
+function renderBC() {
+  const bc = document.getElementById('bc');
+  bc.innerHTML = '📁 ' + S.path.map((p,i) =>
+    i === S.path.length-1 ? `<strong>${p.name}</strong>` : `<span onclick="navTo(${i})">${p.name}</span>`
+  ).join(' › ');
+}
+
+async function renderTree() {
+  renderBC();
+  const cur = S.path[S.path.length-1];
+  const ft = document.getElementById('ftree');
+  ft.innerHTML = '<div style="color:var(--text-dim);padding:8px;"><span class="spin"></span> Cargando...</div>';
+  const items = await fetchFolder(cur.id);
+  ft.innerHTML = items.map(item => {
+    const isF = item.type === 'folder';
+    const ico = isF ? '📁' : item.type === 'xlsx' ? '📊' : '📄';
+    const sel = S.selected.find(s => s.id === item.id);
+    const tag = item.priority ? `<span class="tag ${PT[item.priority]}">${PL[item.priority]}</span>` : '';
+    return `<div class="ti${isF?' folder':''}${sel?' sel':''}" onclick="${isF ? `nav('${item.id}','${item.name.replace(/'/g,"\\'")}')` : `toggleF('${item.id}')`}" id="ti_${item.id}">
+      <span style="font-size:15px;">${ico}</span>
+      <span>${item.name}</span>${tag}
+      ${item.size ? `<span class="meta">${item.size}</span>` : ''}
+    </div>`;
+  }).join('');
+  const hasFiles = items.some(i => i.type !== 'folder');
+  document.getElementById('selCard').style.display = hasFiles ? 'block' : 'none';
+  if (hasFiles) renderFList(items, cur.name);
+}
+
+function renderFList(items, title) {
+  document.getElementById('selTit').textContent = title;
+  const fl = document.getElementById('flist');
+  const files = items.filter(f => f.type !== 'folder');
+  fl.innerHTML = files.map(f => {
+    const chk = S.selected.find(s => s.id === f.id) ? 'checked' : '';
+    const tag = f.priority ? `<span class="tag ${PT[f.priority]}">${PL[f.priority]}</span>` : '';
+    const ico = f.type === 'xlsx' ? '📊' : '📄';
+    return `<label class="cb-item">
+      <input type="checkbox" ${chk} onchange="toggleF('${f.id}')" id="cb_${f.id}">
+      <div><div class="fn">${ico} ${f.name}${tag}</div><div class="fm">${f.size||''} · ${f.type?.toUpperCase()||''}</div></div>
+    </label>`;
+  }).join('');
+}
+
+function nav(id, name) { S.path.push({id, name}); renderTree(); }
+function navTo(i) { S.path = S.path.slice(0, i+1); renderTree(); }
+
+async function toggleF(id) {
+  const cur = S.path[S.path.length-1];
+  const items = await fetchFolder(cur.id);
+  const file = items.find(f => f.id === id);
+  if (!file || file.type === 'folder') { nav(id, file?.name||id); return; }
+  const idx = S.selected.findIndex(f => f.id === id);
+  if (idx >= 0) S.selected.splice(idx, 1); else S.selected.push(file);
+  const cb = document.getElementById('cb_'+id); if(cb) cb.checked = S.selected.some(f=>f.id===id);
+  const ti = document.getElementById('ti_'+id); if(ti) ti.classList.toggle('sel', S.selected.some(f=>f.id===id));
+  updateStat();
+}
+
+async function selCritical() {
+  const cur = S.path[S.path.length-1];
+  const items = await fetchFolder(cur.id);
+  items.filter(f => f.priority==='critical').forEach(f => { if(!S.selected.find(s=>s.id===f.id)) S.selected.push(f); });
+  renderTree(); updateStat();
+}
+async function selAll() {
+  const cur = S.path[S.path.length-1];
+  const items = await fetchFolder(cur.id);
+  items.filter(f => f.type!=='folder').forEach(f => { if(!S.selected.find(s=>s.id===f.id)) S.selected.push(f); });
+  renderTree(); updateStat();
+}
+
+// ── RESUMEN SELECCIÓN ──
+function renderSummary() {
+  const el = document.getElementById('selSum');
+  if (!S.selected.length) { el.textContent = 'Ninguno seleccionado — vuelve al paso 2.'; return; }
+  const byP = {critical:[], recommended:[], optional:[]};
+  S.selected.forEach(f => (byP[f.priority||'optional']).push(f));
+  el.innerHTML = `<div style="margin-bottom:10px;font-weight:600;">${S.selected.length} archivos seleccionados</div>` +
+    Object.entries(byP).filter(([,v])=>v.length).map(([k,files]) => `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:4px;">${PL[k]}</div>
+        ${files.map(f=>`<div style="font-size:12px;padding:3px 0;display:flex;gap:8px;align-items:center;">
+          <span>${f.type==='xlsx'?'📊':'📄'}</span><span>${f.name}</span>
+          ${f.size?`<span style="font-size:10px;color:var(--text-dim);margin-left:auto;">${f.size}</span>`:''}
+        </div>`).join('')}
+      </div>`).join('');
+}
+
+// ── ANÁLISIS ──
+function renderShell() {
+  const checks = [
+    {id:'ca0', title:'1. Coherencia interna (informe + anexos)'},
+    {id:'ca1', title:'2. Cumplimiento DTR'},
+    {id:'ca2', title:'3. Lista de verificación para asesor'},
+    {id:'ca3', title:'4. Síntesis y recomendaciones de interventoría'},
+  ].filter(a => document.getElementById(a.id)?.checked);
+  document.getElementById('resArea').innerHTML = checks.map((a,i) => `
+    <div class="ab">
+      <div class="ah"><span class="at">${a.title}</span><span class="badge bp" id="bg${i}">Pendiente</span></div>
+      <div class="ab-body" id="bd${i}" style="color:var(--text-dim);">En cola...</div>
+    </div>`).join('');
+}
+
+async function runAll() {
+  if (!S.selected.length) { alert('Selecciona archivos primero.'); return; }
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true; btn.textContent = '⏳ Analizando...';
+  goTo(3);
+  document.getElementById('errBox').style.display = 'none';
+  const ctx = document.getElementById('ctx').value;
+  const fList = S.selected.map(f => `  ${f.type==='xlsx'?'[Excel]':'[PDF]'} ${f.name} (${f.size||'?'}) — ${PL[f.priority||'optional']}`).join('\n');
+
+  const checks = [
+    { id:'ca0', prompt:`Eres interventor senior de infraestructura vial colombiana (INVIAS, NSR, AIS).\nPUNTO CRITICO: ${ctx}\nArchivos del entregable:\n${fList}\n\nTAREA - COHERENCIA INTERNA (revision mixta informe + anexos):\nIdentifica contradicciones o inconsistencias:\n1. Caudal de diseno en informe vs planillas de calculo\n2. Periodo de retorno declarado vs curva IDF\n3. Area de drenaje en texto vs plano\n4. Metodologia de socavacion vs calculo en anexos\n5. Datos meteorologicos: serie historica vs parametros usados\n6. Obras proyectadas: descripcion vs diseno hidraulico vs planos\n\nPor hallazgo: CRITICO / PRECAUCION / MENOR. Si no hay inconsistencias indicarlo claramente.` },
+    { id:'ca1', prompt:`Eres interventor senior de infraestructura vial colombiana.\nPUNTO CRITICO: ${ctx}\nArchivos: ${fList}\n\nTAREA - CUMPLIMIENTO DTR (requisitos INVIAS vias terciarias):\n\nHIDROLOGIA:\n- Estacion base y periodo de registro (minimo 20 anos)\n- Metodo de calculo justificado\n- Periodos de retorno por tipo de obra (cunetas T5-10, alcantarillas T25-50, puentes T100)\n- Curva IDF con fuente y metodologia\n- Areas de drenaje con plano soporte\n\nHIDRAULICA:\n- Evaluacion obras existentes\n- Diseno obras nuevas con caudal justificado\n- Calculo borde libre\n- Planos con cotas\n\nSOCAVACION:\n- Metodologia (HEC-18 u otra justificada)\n- Socavacion general y local\n- Profundidad de fundacion\n- Verificacion estabilidad\n\nPor componente: CUMPLE / CUMPLE PARCIAL / NO CUMPLE / NA JUSTIFICADO` },
+    { id:'ca2', prompt:`Eres interventor senior de infraestructura vial colombiana.\nPUNTO CRITICO: ${ctx}\nArchivos: ${fList}\n\nTAREA - LISTA DE VERIFICACION PARA ASESOR HHS:\n1. ASPECTOS que el asesor especialista deberia haber verificado\n2. PREGUNTAS TECNICAS que la interventoria debe formular al consultor\n3. DOCUMENTOS O CALCULOS que requieren soporte adicional\n4. ASPECTOS QUE GENERAN ALERTA tecnica\n5. CONDICIONANTES para aprobacion del entregable\n\nSe concreto y tecnico. Usa terminologia INVIAS/HEC/ASCE.` },
+    { id:'ca3', prompt:`Eres el interventor del informe consolidado Fase 2 Diseno, puntos criticos viales.\nPUNTO CRITICO: ${ctx}\nArchivos revisados: ${fList}\n\nTAREA - SINTESIS Y CONCEPTO DE INTERVENTORIA:\n1. ESTADO GENERAL: Aprobado / Aprobado con observaciones / Devuelto para correccion\n2. Resumen de lo entregado por el consultor (3-4 lineas)\n3. Hallazgos principales de la interventoria\n4. Recomendaciones especificas numeradas\n5. Condicionantes para aprobacion (si aplica)\n6. Concepto final de interventoria (1 parrafo ejecutivo)` },
+  ].filter(a => document.getElementById(a.id)?.checked);
+
+  S.results = {};
+  for (let i = 0; i < checks.length; i++) {
+    setBadge(i, 'Procesando', 'br');
+    setBody(i, '<span class="spin"></span> Leyendo archivos y analizando con Claude...');
+    setProg(i, checks.length);
+    try {
+      const blocks = [];
+      if (!S.demo) {
+        for (const f of S.selected) {
+          if (f.type === 'folder') continue;
+          const data = await readFile(f.id);
+          if (data) {
+            if (data.isPdf) blocks.push({type:'document', source:{type:'base64', media_type:'application/pdf', data:data.b64}, title:f.name});
+            else blocks.push({type:'text', text:`=== ${f.name} (Excel — datos de soporte) ===`});
+          }
+        }
+      }
+      blocks.push({type:'text', text: checks[i].prompt});
+      const res = await callAPI(blocks);
+      S.results[i] = res; setBody(i, res); setBadge(i, 'Completo', 'bd');
+    } catch(err) {
+      S.results[i] = 'Error: ' + err.message;
+      setBody(i, '❌ Error: ' + err.message); setBadge(i, 'Error', 'be');
+      const eb = document.getElementById('errBox');
+      eb.style.display = 'block'; eb.textContent = 'Error en análisis ' + (i+1) + ': ' + err.message;
+    }
+    setProg(i+1, checks.length);
+  }
+  btn.disabled = false; btn.textContent = '▶ Re-ejecutar análisis';
+  document.getElementById('nav3').classList.add('done');
+  updateStat();
+}
+
+async function callAPI(blocks) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:4000, messages:[{role:'user', content:blocks}] })
+  });
+  const raw = await r.text();
+  if (!r.ok) { let m='HTTP '+r.status; try{m=JSON.parse(raw).error?.message||m;}catch(e){} throw new Error(m); }
+  const d = JSON.parse(raw);
+  return d.content.map(b => b.text||'').join('');
+}
+
+function setBadge(i,t,c) { const b=document.getElementById('bg'+i); if(b){b.textContent=t;b.className='badge '+c;} }
+function setBody(i,t) { const b=document.getElementById('bd'+i); if(b){b.innerHTML='<pre style="white-space:pre-wrap;font-size:13px;line-height:1.75;font-family:inherit;">'+t+'</pre>'; b.style.color='var(--text)';} }
+function setProg(d,t) { const p=Math.round(d/t*100); document.getElementById('pFill').style.width=p+'%'; document.getElementById('pPct').textContent=p+'%'; document.getElementById('pTxt').textContent=d<t?`Análisis ${d}/${t} completados`:'✓ Análisis completado'; }
+
+function copyAll() {
+  const T = ['1. COHERENCIA INTERNA','2. CUMPLIMIENTO DTR','3. LISTA VERIFICACIÓN ASESOR','4. SÍNTESIS INTERVENTORÍA'];
+  const txt = Object.entries(S.results).map(([i,v])=>`${'='.repeat(60)}\n${T[i]||'Análisis '+(parseInt(i)+1)}\n${'='.repeat(60)}\n${v}`).join('\n\n');
+  navigator.clipboard.writeText(txt).then(()=>alert('✓ Análisis copiado al portapapeles'));
+}
+
+function exportHTML() {
+  const pc = S.pc || 'PC-XX';
+  const ctx = document.getElementById('ctx').value;
+  const T = ['1. Coherencia interna','2. Cumplimiento DTR','3. Lista verificación asesor','4. Síntesis interventoría'];
+  const body = Object.entries(S.results).map(([i,v])=>`<h2>${T[i]||'Análisis '+(parseInt(i)+1)}</h2><pre style="background:#f8f9fa;padding:16px;border-radius:8px;white-space:pre-wrap;font-size:12px;line-height:1.7;">${v.replace(/</g,'&lt;')}</pre>`).join('');
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>SIVIC — ${pc}</title>
+<style>body{font-family:Arial,sans-serif;max-width:1100px;margin:40px auto;padding:0 20px;}h1{color:#1971c2;border-bottom:3px solid #1971c2;padding-bottom:8px;}h2{color:#1864ab;margin:28px 0 10px;}pre{font-family:inherit;}</style></head><body>
+<h1>SIVIC — Interventoría Fase 2 — Diseño</h1>
+<p><strong>Punto crítico:</strong> ${pc} — ${ctx}</p>
+<p><strong>Archivos analizados:</strong> ${S.selected.map(f=>f.name).join(', ')}</p>
+<p><strong>Fecha:</strong> ${new Date().toLocaleString('es-CO')}</p>
+${body}
+</body></html>`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([html],{type:'text/html'}));
+  a.download = `SIVIC_${pc}_Fase2.html`;
+  a.click();
+}
+</script>
+</body>
+</html>
