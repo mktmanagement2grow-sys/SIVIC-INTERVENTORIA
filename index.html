@@ -147,6 +147,7 @@ textarea:focus, input[type=text]:focus { outline: none; border-color: var(--acce
   .ugrid, .grid2 { grid-template-columns: 1fr; }
 }
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -390,25 +391,27 @@ function updateStat() {
 
 // ── OAUTH DRIVE ──
 function connectDrive() {
-  const scope = 'https://www.googleapis.com/auth/drive.readonly';
-  const uri = window.location.origin + window.location.pathname;
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(uri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
-  const pop = window.open(url, 'oauth', 'width=520,height=620');
-  showAuth('<span class="spin"></span> Esperando autorización de Google Drive...', 'ni');
-  const t = setInterval(() => {
-    try {
-      if (pop.closed) { clearInterval(t); showAuth('Ventana cerrada sin autorizar.', 'nw'); return; }
-      const h = pop.location.hash;
-      if (h && h.includes('access_token')) {
-        clearInterval(t); pop.close();
-        S.token = new URLSearchParams(h.slice(1)).get('access_token');
+  showAuth('<span class="spin"></span> Iniciando conexión con Google Drive...', 'ni');
+  try {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.readonly',
+      callback: (response) => {
+        if (response.error) {
+          showAuth('Error: ' + response.error, 'ne');
+          return;
+        }
+        S.token = response.access_token;
         showAuth('✓ Google Drive conectado correctamente.', 'ns');
         document.getElementById('nav0').classList.add('done');
         updateStat();
         setTimeout(() => goTo(1), 800);
-      }
-    } catch(e) {}
-  }, 500);
+      },
+    });
+    client.requestAccessToken();
+  } catch(e) {
+    showAuth('Error al conectar: ' + e.message + '. Intenta el modo demo.', 'ne');
+  }
 }
 
 function demoMode() {
